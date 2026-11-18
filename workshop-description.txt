@@ -1,0 +1,85 @@
+[h1]Ceiling Lights Editor (Viewpoint)[/h1]
+
+Put your ceiling lights where you want them.
+
+[b]Ceiling Lights Editor[/b] is a client-side addon for [b]Ceiling Lights (Viewpoint)[/b]. It moves Viewpoint's room lighting to the actual ceiling fixtures and lets you manually adjust their placement with an in-game editor.
+
+A light stuck in a wall? A corner left in the dark? Move the fixture and its light together, or add another fixture to the room's existing lighting circuit.
+
+[h2]Requirements[/h2]
+[list]
+[*] Project Zomboid Build 42.22.2 - the version used for development and checks.
+[*] Project Viewpoint 0.1.7, with Addon API 1.0.
+[*] Ceiling Lights (Viewpoint) 2.0.0.
+[*] ZombieBuddy 2.3.0 or newer.
+[/list]
+
+The original Ceiling Lights mod is required. This addon uses its installed models and does not redistribute them. The integration checks the internal classes it depends on; a changed Viewpoint or CeilingLights build may require an addon update.
+
+[h2]Important: installation and activation[/h2]
+[list]
+[*] Subscribe to this addon and its required mods.
+[*] Enable [b]Ceiling Lights Editor (Viewpoint)[/b] in Project Zomboid's Mods menu. Enable it for your save as well.
+[*] [b]Completely exit and restart the game.[/b] Lua reload does not load the Java patches, and Viewpoint discovers the cursor addon at startup.
+[*] Approve the Java patches when ZombieBuddy requests approval.
+[*] Open [b]Viewpoint > Advanced > Addons[/b].
+[*] Activate [b]Ceiling Light Editor Cursor[/b] and approve its [b]camera[/b] and [b]Lua[/b] permissions. This helper releases the mouse while the editor is open.
+[*] Enter a world, use a Viewpoint 3D camera, aim at a ceiling fixture, and press [b]F7[/b]. Press F7 again to close the editor and aim elsewhere.
+[/list]
+
+[b]No additional shaderpack is required.[/b] Keep your selected Viewpoint look. The lighting core is loaded through ZombieBuddy; the separate cursor helper is the entry you activate in Viewpoint's Addons list.
+
+[h2]Features[/h2]
+[list]
+[*] Render room lights at the actual CeilingLights fixtures instead of a single central point.
+[*] Select a fixture by aiming at it before pressing F7, or choose it from the editor list.
+[*] List only loaded fixtures in the room recognized by the game, including hidden fixtures that can be restored.
+[*] Show horizontal distance in squares, with the nearest fixtures listed first.
+[*] Use [b]Refresh room[/b] to update the current-room list and recalculate distances after moving.
+[*] Move fixtures west/east, north/south, and up/down with 0.05, 0.25, 0.5, or 1-square steps.
+[*] Snap positions to the selected grid size and rotate in 15-degree increments.
+[*] Choose another CeilingLights model, duplicate a fixture, or add a new one.
+[*] Hide/show automatic fixtures and restore their original placement. Manually added fixtures can be deleted.
+[*] Adjust intensity and reach individually.
+[*] Save successful changes automatically for each world.
+[*] Export and import layouts to share them with other players using the same map coordinates.
+[/list]
+
+[h2]Using the editor[/h2]
+
+[b]Move an existing light:[/b] aim at the fixture, press F7, choose a movement step, and use the position and rotation buttons. The model and its light use the same placement.
+
+[b]Add a light:[/b] aim at the desired ceiling position before opening the editor, choose a model, and click [b]Add model at aimed ceiling[/b]. New fixtures start at the model's normal ceiling height; adjust the height manually. If there is no aim hit, the player's position is used.
+
+[b]Duplicate:[/b] the copy starts at the same position as the selected fixture. Move it with the position controls.
+
+[b]Restore:[/b] use [b]Restore automatic position[/b] to remove an automatic fixture's override. Hidden fixtures remain available in the room list.
+
+[h2]Saving and sharing[/h2]
+
+Layouts are saved in [b]viewpoint-ceiling-lights.properties[/b] inside the current game's save directory. Client settings and existing layouts keep their filenames when updating from the former ViewpointCeilingLightSources Mod ID.
+
+[b]Export layout[/b] writes [b]Zomboid/Lua/ViewpointCeilingLightSources-export.properties[/b]. To share a layout, give that file to another player, have them place it at the same path, and use [b]Import layout[/b]. Imports merge by stable identifier, so importing the same file twice does not duplicate lights.
+
+[h2]Power, multiplayer and limits[/h2]
+[list]
+[*] Lights follow the existing room's power and switch state. Added fixtures need a room with an existing lighting circuit.
+[*] Edits stay within the same loaded room and floor, up to 32 squares from the original position.
+[*] The addon changes the Viewpoint picture; it adds no map objects or network packets and does not change gameplay lighting or electrical rules.
+[*] Layouts are local to each client. Each player who wants the visuals needs the addon. Server restrictions on client mods may apply.
+[*] Viewpoint retains its own light-selection and shadow budgets. Up to 64 additional active sources are prepared per native update; a room exceeding the budget keeps its original lighting.
+[*] Up to 512 edited or added fixture records can be saved per world.
+[*] Mesh and lighting updates are asynchronous, so the preview may take a moment to settle.
+[/list]
+
+[h2]Local configuration and diagnostics[/h2]
+
+Client settings are stored in [b]Zomboid/Lua/ViewpointCeilingLightSources.properties[/b]: enabled, global intensity, reach, and optional diagnostic logs. Diagnostics are disabled by default. Look for [b][CeilingLightSources][/b] in console.txt when troubleshooting.
+
+User-reported in-game checks cover the lighting replacement and manual editor, including the room list and distances. Broader multiplayer and performance checks remain pending.
+
+[h2]Source code[/h2]
+[url=https://github.com/Maeiro/CeilingLightsEditor]GitHub repository[/url]
+
+Workshop ID: 3842025684
+Mod ID: CeilingLightsEditor

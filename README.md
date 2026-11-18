@@ -2,6 +2,8 @@
 
 Mod ID: `CeilingLightsEditor`
 
+[Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3842025684) - Workshop ID: `3842025684`
+
 ![Ceiling Lights Editor (Viewpoint)](preview.jpg)
 
 Experimental client integration for **Ceiling Lights (Viewpoint) 2.0.0**, **Project Viewpoint 0.1.7**, **ZombieBuddy 2.3.0+**, and **Project Zomboid 42.22.2**.
