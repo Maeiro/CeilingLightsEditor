@@ -9,3 +9,4 @@ ZBVersionMin=2.3.0
 javaJarFile=media/java/client/viewpoint-ceiling-light-sources.jar
 javaPkgName=maeiro.ceilinglights
 description=Manually move, rotate, add and configure CeilingLights fixtures in Viewpoint. Client-side room lighting with per-world layouts. Restart required.
+poster=poster.png

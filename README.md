@@ -2,6 +2,8 @@
 
 Mod ID: `CeilingLightsEditor`
 
+![Ceiling Lights Editor (Viewpoint)](preview.jpg)
+
 Experimental client integration for **Ceiling Lights (Viewpoint) 2.0.0**, **Project Viewpoint 0.1.7**, **ZombieBuddy 2.3.0+**, and **Project Zomboid 42.22.2**.
 
 CeilingLights places decorative fixtures across rooms, but the renderer normally puts a room light at the centre of each room-light rectangle. This mod captures the positions actually submitted by CeilingLights and registers virtual light sources at those fixtures. Each light sits just below its model's lowest point to avoid placing the source inside its housing. No CeilingLights meshes or textures are included in this package.
