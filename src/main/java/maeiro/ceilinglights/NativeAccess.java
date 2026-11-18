@@ -40,6 +40,8 @@ final class NativeAccess {
     }
 
     Prepared prepare(LightRuntime.Fixture f, Config config) throws Exception {
+        EditorStore.Edit edit = EditorStore.get(f.id());
+        if (edit != null) config = new Config(config.enabled, config.intensity * edit.intensity(), edit.reach(), config.diagnostics);
         int x = (int) Math.floor(f.x());
         int y = (int) Math.floor(f.y());
         Object anchor = fixtureConstructor.newInstance(f.x() - x, f.y() - y, f.rise());

@@ -15,14 +15,22 @@ $sources = @(Get-ChildItem -LiteralPath "$root\src\main\java" -Recurse -Filter '
 & "$JdkDir\bin\javac.exe" --release 17 -Xlint:all -classpath $classpath -d $classes @sources
 if ($LASTEXITCODE -ne 0) { throw 'Compilation failed.' }
 Copy-Item "$root\resources\*.properties" $classes
-$jar = Join-Path $root 'content\mods\ViewpointCeilingLightSources\42\media\java\client\viewpoint-ceiling-light-sources.jar'
+$jar = Join-Path $root 'content\mods\CeilingLightsEditor\42\media\java\client\viewpoint-ceiling-light-sources.jar'
 & "$JdkDir\bin\jar.exe" --create --date=2026-11-18T00:00:00Z --file $jar -C $classes .
 if ($LASTEXITCODE -ne 0) { throw 'Packaging failed.' }
-$stage = Join-Path $root 'dist\ViewpointCeilingLightSources\Contents\mods\ViewpointCeilingLightSources'
+$cursorClasses = Join-Path $build 'cursor-classes'
+New-Item -ItemType Directory -Force -Path $cursorClasses | Out-Null
+$cursorSources = @(Get-ChildItem -LiteralPath "$root\src\cursor\java" -Recurse -Filter '*.java' | ForEach-Object FullName)
+& "$JdkDir\bin\javac.exe" --release 17 -Xlint:all -classpath $ViewpointJar -d $cursorClasses @cursorSources
+if ($LASTEXITCODE -ne 0) { throw 'Cursor addon compilation failed.' }
+$cursorJar = Join-Path $root 'content\mods\CeilingLightsEditor\42\media\viewpoint\addons\maeiro.ceiling-editor-cursor\ceiling-editor-cursor.jar'
+& "$JdkDir\bin\jar.exe" --create --date=2026-11-18T00:00:00Z --file $cursorJar -C $cursorClasses .
+if ($LASTEXITCODE -ne 0) { throw 'Cursor addon packaging failed.' }
+$stage = Join-Path $root 'dist\CeilingLightsEditor\Contents\mods\CeilingLightsEditor'
 New-Item -ItemType Directory -Force -Path $stage | Out-Null
-Copy-Item "$root\content\mods\ViewpointCeilingLightSources\*" $stage -Recurse -Force
-if (Test-Path "$root\README.md") { Copy-Item "$root\README.md" "$root\dist\ViewpointCeilingLightSources\README.md" }
-Compress-Archive -Path "$root\dist\ViewpointCeilingLightSources" -DestinationPath "$root\dist\ViewpointCeilingLightSources.zip" -Force
+Copy-Item "$root\content\mods\CeilingLightsEditor\*" $stage -Recurse -Force
+if (Test-Path "$root\README.md") { Copy-Item "$root\README.md" "$root\dist\CeilingLightsEditor\README.md" }
+Compress-Archive -Path "$root\dist\CeilingLightsEditor" -DestinationPath "$root\dist\CeilingLightsEditor.zip" -Force
 Write-Output "Build=$build"
 Write-Output "Classpath=$classpath"
 Get-FileHash -LiteralPath $jar -Algorithm SHA256

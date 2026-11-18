@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -39,7 +40,7 @@ public final class LightRuntime {
     private static volatile Config config = Config.DEFAULT;
     private static Properties emission;
     private static NativeAccess nativeAccess;
-    private static IsoCell cell;
+    private static volatile IsoCell cell;
     private static Path configPath;
     private static long configTime = Long.MIN_VALUE;
     private static long nextPoll;
@@ -61,7 +62,7 @@ public final class LightRuntime {
             configPath = Path.of(ZomboidFileSystem.instance.getCacheDir(), "Lua", "ViewpointCeilingLightSources.properties");
             config = Config.read(configPath);
             compatible = true;
-            System.out.println("[CeilingLightSources] 0.1.0 loaded; compatible with installed Viewpoint/CeilingLights.");
+            System.out.println("[CeilingLightSources] 0.2.1 loaded; compatible with installed Viewpoint/CeilingLights.");
             System.out.println("[CeilingLightSources] Settings: " + configPath);
         } catch (Exception | LinkageError e) {
             fail(e);
@@ -76,24 +77,42 @@ public final class LightRuntime {
                 ((Number) args[2]).floatValue(), new ArrayList<>()));
     }
 
-    public static void capturePart(Object[] args) {
+    static void modelsChanged() { revision.incrementAndGet(); }
+
+    static Config settings() { return config; }
+
+    static boolean isCompatible() { return compatible; }
+
+    static Capture captureContext() { return capture.get(); }
+    static IsoCell currentCell() { return cell; }
+    static float emissionHeight(String model) { return Float.parseFloat(emission.getProperty(model)); }
+
+    static Fixture fixtureFrom(Object[] args) {
         Capture current = capture.get();
-        if (current == null || !(args[0] instanceof IsoSprite sprite)) return;
+        if (current == null || args.length != 5 || !(args[0] instanceof IsoSprite sprite)) return null;
         String height = emission.getProperty(sprite.name == null ? "" : sprite.name);
-        if (height == null) return;
+        if (height == null) return null;
         IsoGridSquare square = current.square;
         float x = square.getX() + .5f + ((Number) args[1]).floatValue() - current.localX;
         float y = square.getY() + .5f + ((Number) args[2]).floatValue() - current.localY;
         float rise = ((Number) args[3]).floatValue() + Float.parseFloat(height) - square.getZ() * STOREY;
-        if (Float.isFinite(x) && Float.isFinite(y) && Float.isFinite(rise) && rise > 0 && rise < 20) {
-            current.fixtures.add(new Fixture(x, y, square.getZ(), rise, sprite.name));
+        if (!Float.isFinite(x) || !Float.isFinite(y) || !Float.isFinite(rise) || rise <= 0 || rise >= 20) return null;
+        return new Fixture(x, y, square.getZ(), rise, sprite.name);
+    }
+
+    public static void capturePart(Object[] args) {
+        Fixture fixture = fixtureFrom(args);
+        if (fixture != null) {
+            capture.get().fixtures.add(fixture);
+            EditorModels.drawn(fixture);
         }
     }
 
     public static void endCapture(Throwable thrown) {
         Capture current = capture.get();
-        capture.remove();
-        if (current == null || thrown != null) return;
+        if (current == null || thrown != null) { capture.remove(); return; }
+        try { EditorModels.inject(current); }
+        finally { capture.remove(); }
         IsoGridSquare square = current.square;
         Tile tile = new Tile(square.getX(), square.getY(), square.getZ());
         SquareCapture value = new SquareCapture(square, current.room, List.copyOf(current.fixtures));
@@ -112,6 +131,7 @@ public final class LightRuntime {
             if (now >= nextPoll) {
                 nextPoll = now + 2_000_000_000L;
                 reloadConfig();
+                EditorModels.prune(cell);
                 squares.entrySet().removeIf(entry -> {
                     Tile at = entry.getKey();
                     SquareCapture value = entry.getValue();
@@ -206,18 +226,25 @@ public final class LightRuntime {
                 }
             }
         }
-        return new Layout(captureVersion, generation, stamp, List.copyOf(found), active);
+        List<Fixture> resolved = new ArrayList<>();
+        for (Fixture base : found) {
+            Fixture placed = EditorStore.effective(base);
+            if (placed == null) continue;
+            if (!EditorModels.matches(placed)) return Layout.empty(stamp, captureVersion);
+            resolved.add(placed);
+        }
+        return new Layout(captureVersion, generation, stamp, List.copyOf(resolved), active, !found.isEmpty());
     }
 
     public static boolean replaceRoom(Object register, int id, long room, long building, boolean active) {
         if (!compatible || !config.enabled) return false;
         Layout layout = byLight.get(id);
-        if (layout == null || layout.fixtures.isEmpty()) return false;
+        if (layout == null || !layout.controlled) return false;
         try {
             if (!layout.published) {
                 layout.published = true;
                 layout.ready = false;
-                if (!layout.active) {
+                if (!layout.active || layout.fixtures.isEmpty()) {
                     layout.ready = true;
                     return true;
                 }
@@ -291,6 +318,7 @@ public final class LightRuntime {
         liveOwned.clear();
         cell = null;
         loggedReplacement = false;
+        EditorModels.clear();
     }
 
     private static void fail(Throwable e) {
@@ -300,9 +328,35 @@ public final class LightRuntime {
     }
 
     record Tile(int x, int y, int z) {}
-    record Fixture(float x, float y, int z, float rise, String model) {}
+    record Fixture(float x, float y, int z, float rise, String model, String id, float yaw) {
+        Fixture(float x, float y, int z, float rise, String model) {
+            this(x, y, z, rise, model, automaticId(x, y, z, rise, model), 0);
+        }
+
+        static String automaticId(float x, float y, int z, float rise, String model) {
+            return "auto-" + Integer.toHexString(Float.floatToIntBits(x)) + "_"
+                    + Integer.toHexString(Float.floatToIntBits(y)) + "_" + Integer.toHexString(z) + "_"
+                    + Integer.toHexString(Float.floatToIntBits(rise)) + "_" + model;
+        }
+    }
+
+    static List<Fixture> knownFixtures() {
+        Map<String, Fixture> known = new LinkedHashMap<>();
+        for (SquareCapture square : squares.values()) {
+            for (Fixture fixture : square.fixtures) known.put(fixture.id(), fixture);
+        }
+        for (EditorStore.Edit edit : EditorStore.edits()) known.put(edit.base().id(), edit.base());
+        return List.copyOf(known.values());
+    }
+
+    static void edited(Set<Tile> affected) throws Exception {
+        generation++;
+        revision.incrementAndGet();
+        virtual.clear();
+        EditorModels.invalidate(affected, cell);
+    }
     private record SquareCapture(IsoGridSquare square, IsoRoom room, List<Fixture> fixtures) {}
-    private record Capture(IsoGridSquare square, IsoRoom room, float localX, float localY, List<Fixture> fixtures) {}
+    record Capture(IsoGridSquare square, IsoRoom room, float localX, float localY, List<Fixture> fixtures) {}
     private record VirtualLight(long key, NativeAccess.Prepared prepared) {}
 
     private static final class Layout {
@@ -311,15 +365,21 @@ public final class LightRuntime {
         final long stamp;
         final List<Fixture> fixtures;
         final boolean active;
+        final boolean controlled;
         boolean published;
         boolean ready;
 
         Layout(long revision, long generation, long stamp, List<Fixture> fixtures, boolean active) {
+            this(revision, generation, stamp, fixtures, active, false);
+        }
+
+        Layout(long revision, long generation, long stamp, List<Fixture> fixtures, boolean active, boolean controlled) {
             this.revision = revision;
             this.generation = generation;
             this.stamp = stamp;
             this.fixtures = fixtures;
             this.active = active;
+            this.controlled = controlled;
         }
 
         static Layout empty(long stamp, long captureVersion) {

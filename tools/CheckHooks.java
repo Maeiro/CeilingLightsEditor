@@ -30,7 +30,7 @@ public final class CheckHooks {
         ClassLoader loader=CheckHooks.class.getClassLoader();
         ClassFileLocator locator=ClassFileLocator.ForClassLoader.of(loader);
         TypePool pool=TypePool.Default.of(locator);
-        for(String name: new String[]{"CapturePatch","PartPatch","UpdatePatch","RoomPatch","RegistryPatch","SelectionPatch","ForgetPatch"}) {
+        for(String name: new String[]{"CapturePatch","PartPatch","UpdatePatch","RoomPatch","RegistryPatch","SelectionPatch","ForgetPatch","RotationPatch"}) {
             Class<?> patch=Class.forName("maeiro.ceilinglights."+name);
             Patch spec=patch.getAnnotation(Patch.class);
             transform.invoke(null,patch,instrumentation,0,false);
